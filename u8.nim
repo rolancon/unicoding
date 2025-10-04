@@ -2,7 +2,11 @@ import os
 
 var us_ascii = true
 var utf_8 = true
-var tail_bytes = 0
+var utf8_tail_bytes = 0
+
+var utf_16le = false
+var utf_16be = false
+var bom_byte: uint8
 
 proc readFileByteByByte(filename: string) =
   try:
@@ -15,20 +19,33 @@ proc readFileByteByByte(filename: string) =
     while not file.endOfFile:
       let bytesRead = file.readBuffer(addr(byte), 1)
       if bytesRead == 1:
-        #echo "Byte: ", byte, " (char: ", cast[char](byte), ")"
+        #echo "byte: ", byte, " (char: ", cast[char](byte), ")"
         if byte > 127:
             us_ascii = false
-            if tail_bytes == 0:
+            if file.getFilePos == 1 and byte >= 254:
+                #echo "BOM byte 1: ", byte, " (char: ", cast[char](byte), ")"
+                utf_8 = false
+                bom_byte = byte
+            elif file.getFilePos == 2 and byte >= 254:
+                #echo "BOM byte 2: ", byte, " (char: ", cast[char](byte), ")"
+                utf_8 = false
+                if byte != bom_byte:
+                    let fileSize = file.getFileSize
+                    if (fileSize > 2) and (fileSize mod 2 == 0): 
+                      if byte < bom_byte: utf_16le = true
+                      else: utf_16be = true
+                      break
+            elif utf_8_tail_bytes == 0:
                 # 110xxxxx
-                if byte >= 192 and byte <= 223: tail_bytes = 1
+                if byte >= 192 and byte <= 223: utf_8_tail_bytes = 1
                 # 1110xxxx
-                elif byte >= 224 and byte <= 239: tail_bytes = 2
+                elif byte >= 224 and byte <= 239: utf_8_tail_bytes = 2
                 # 11110xxx
-                elif byte >= 240 and byte <= 247: tail_bytes = 3
+                elif byte >= 240 and byte <= 247: utf_8_tail_bytes = 3
                 else: utf_8 = false
             else:
                 # 10xxxxxx
-                if byte >= 128 and byte <= 191: tail_bytes = tail_bytes - 1
+                if byte >= 128 and byte <= 191: utf_8_tail_bytes = utf_8_tail_bytes - 1
                 else: utf_8 = false
       else:
         echo "Error: Failed to read byte"
@@ -50,4 +67,6 @@ when isMainModule:
 
   if us_ascii: echo "US-ASCII"
   elif utf_8: echo "UTF-8"
+  elif utf_16le: echo "UTF-16LE"
+  elif utf_16be: echo "UTF-16BE"
   else: echo "UNKNOWN"
