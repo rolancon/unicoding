@@ -1,5 +1,7 @@
 import os
 
+var empty = false
+
 var us_ascii = true
 var utf_8 = true
 var utf8_tail_bytes = 0
@@ -13,6 +15,10 @@ proc readFileByteByByte(filename: string) =
     # Open the file in binary mode
     let file = open(filename, fmRead)
     defer: file.close() # Ensure file is closed after use
+    let fileSize = file.getFileSize
+    if fileSize == 0:
+      empty = true
+      return
     
     # Read file byte by byte
     var byte: uint8
@@ -30,7 +36,6 @@ proc readFileByteByByte(filename: string) =
                 #echo "BOM byte 2: ", byte, " (char: ", cast[char](byte), ")"
                 utf_8 = false
                 if byte != bom_byte:
-                    let fileSize = file.getFileSize
                     if (fileSize > 2) and (fileSize mod 2 == 0): 
                       if byte < bom_byte: utf_16le = true
                       else: utf_16be = true
@@ -65,7 +70,8 @@ when isMainModule:
   
   readFileByteByByte(filename)
 
-  if us_ascii: echo "US-ASCII"
+  if empty: echo "EMPTY"
+  elif us_ascii: echo "US-ASCII"
   elif utf_8: echo "UTF-8"
   elif utf_16le: echo "UTF-16LE"
   elif utf_16be: echo "UTF-16BE"
