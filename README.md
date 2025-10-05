@@ -1,6 +1,6 @@
 # Unicoding
 
-Unicoding (_u8_) is a Linux tool to check byte-by-byte whether a file is in UTF-8 or US-ASCII byte-encoding.
+Unicoding (_u8_) is a Linux tool to check byte-by-byte whether a file is in US-ASCII, UTF-8 or UTF-16 byte-encoding.
 
 Usage is simple, on the prompt type:
 
